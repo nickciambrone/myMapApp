@@ -1,0 +1,227 @@
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>Amenity Map</title>
+    <style>
+        html,
+        body,
+        #viewDiv {
+            padding: 0;
+            margin-right: 100;
+            height: 100%;
+            width: 100%;
+        }
+    </style>
+
+    <link rel="stylesheet" href="https://js.arcgis.com/4.11/esri/css/main.css">
+
+    <script src="https://js.arcgis.com/4.11/"></script>
+
+    <script>
+
+        require([
+            "esri/Map",
+            "esri/views/MapView",
+            //*** ADD ***//
+            "esri/tasks/Locator",
+            "esri/Graphic",
+            "esri/widgets/Search",
+            "esri/widgets/Locate",
+            "esri/layers/VectorTileLayer"
+        ], function (Map, MapView, Locator, Graphic, Search, Locate, VectorTileLayer) {
+            var map = new Map({
+                basemap: "topo-vector"
+            });
+            var view = new MapView({
+                container: "viewDiv",
+                map: map,
+                center: [-118.80543, 34.02700],
+                zoom: 13
+            });
+            var places = ["Coffee shop", "Gas station", "Food", "Hotel", "Neighborhood", "Parks and Outdoors"];
+            var div = document.createElement("div", "");
+            var placesArray = [];
+            places.forEach(function (p) {
+                // var option = document.createElement("option");
+                // option.value = p;
+                // option.innerHTML = p;
+                // select.appendChild(option);
+                var checkBox = document.createElement("input");
+                var att = document.createAttribute("type");
+                att.value = "checkbox";
+                checkBox.setAttributeNode(att);
+                console.log("p");
+                checkBox.value = p;
+                div.appendChild(checkBox)
+                var span = document.createElement("strong");
+                span.innerHTML = p;
+                div.appendChild(span);
+                var br = document.createElement("br")
+                div.appendChild(br);
+            });
+            view.ui.add(div, "top-right");
+            var locator = new Locator({
+                url: "http://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer"
+            });
+            // Find places and add them to the map
+            function findPlaces(category, pt) {
+                locator.addressToLocations({
+                    location: pt,
+                    categories: [category],
+                    maxLocations: 1000,
+                    outFields: ["Place_addr", "PlaceName"]
+                })
+                    .then(function (results) {
+                        // Clear the map
+                        view.popup.close();
+                        view.graphics.removeAll();
+                        // Add graphics
+                        results.forEach(function (result) {
+                            console.log("category: ", result);
+                            if (category == "Coffee shop"){
+                                view.graphics.add(
+                                new Graphic({
+                                    attributes: result.attributes,
+                                    geometry: result.location,
+                                    symbol: {
+                                        type: "simple-marker",
+                                        color: "#000000",
+                                        size: "8px",
+                                        outline: {
+                                            color: "#ffffff",
+                                            width: "1.5px"
+                                        }
+                                    },
+                                    popupTemplate: {
+                                        title: "{PlaceName}",
+                                        content: "{Place_addr}"
+                                    }
+                                }));
+                            }
+                            else if (category = "Gas station"){
+                                view.graphics.add(
+                                new Graphic({
+                                    attributes: result.attributes,
+                                    geometry: result.location,
+                                    symbol: {
+                                        type: "simple-marker",
+                                        color: "#9800",
+                                        size: "15px",
+                                        outline: {
+                                            color: "#ffffff",
+                                            width: "1.5px"
+                                        }
+                                    },
+                                    popupTemplate: {
+                                        title: "{PlaceName}",
+                                        content: "{Place_addr}"
+                                    }
+                                }));
+                            }
+
+
+                        });
+                    });
+            }
+
+            // Search for places in center of map when the app loads
+            findPlaces(div.value, view.center);
+            // Listen for category changes and find places
+            div.addEventListener('click', function (event) {
+                if (event.target.checked == true) {
+                    placesArray.push(event.target.value);
+                }
+                else {
+                    for (var i = 0; i < placesArray.length; i++) {
+                        if (placesArray[i] == event.target.value) {
+                            placesArray.splice(i, 1);
+                        }
+                    }
+                }
+                console.log(placesArray)
+                findPlaces(placesArray, view.center);
+            });
+            // Listen for mouse clicks and find places
+            view.on("click", function (event) {
+                view.hitTest(event.screenPoint)
+                    .then(function (response) {
+                        if (response.results.length < 2) { // If graphic is not clicked, find places
+                            console.log(center);
+                            findPlaces(div.options[div.selectedIndex].text, event.mapPoint);
+                        }
+                    })
+            });
+            var search = new Search({
+                view: view
+            });
+            view.ui.add(search, "top-right");
+            var locateBtn = new Locate({
+                view: view
+            });
+            // Add the locate widget to the top left corner of the view
+            view.ui.add(locateBtn, "top-left");
+        });
+    </script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+    <!-- Optional theme -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
+
+    {# MEDIUM STYLE EDITOR#}
+    <script src="//cdn.jsdelivr.net/medium-editor/latest/js/medium-editor.min.js"></script>
+    <link rel="stylesheet" href="//cdn.jsdelivr.net/medium-editor/latest/css/medium-editor.min.css" type="text/css" media="screen" charset="utf-8">
+
+
+    {# Custom CSS#}
+
+    {# Fonts#}
+    <link href="https://fonts.googleapis.com/css?family=Montserrat|Russo+One" rel="stylesheet">
+</head>
+
+<body>
+  <nav class="navbar navbar-default techfont custom-navbar">
+    <div class="container">
+
+
+      <ul class="nav navbar-nav">
+        <li><a class='navbar-brand bigbrand' href="{% url 'post_list' %}">Houses</a></li>
+        <li><a href="{% url 'about'%}">Amenity Map</a></li>
+        <li><a href="{% url 'yelp'%}">Yelp API</a></li>
+
+        <li><a href="https://www.github.com">Github</a></li>
+        <li><a href="https://www.linkedin.com">LinkedIn</a></li>
+
+      </ul>
+
+      <ul class="nav navbar-nav navbar-right">
+        {% if user.is_authenticated %}
+        <li>
+          <a href="{% url 'post_new' %}" >New Post</a>
+        </li>
+
+        <li>
+          <a href="{% url 'post_draft_list' %}">Drafts</a>
+        </li>
+        <li>
+          <a href="{% url 'logout' %}" >Log out</a>
+        </li>
+
+        <li>
+          <a >Welcome: {{ user.username }}</a>
+        </li>
+          {% else %}
+          <li><a class='nav navbar-right' href="{% url 'login' %}" ><span class="glyphicon glyphicon-user"></span></a></li>
+        {% endif %}
+
+      </ul>
+  </div>
+</nav>
+<div class="container">
+  <div id="viewDiv"></div>
+
+</div>
+</body>
+
+</html>
